@@ -1,0 +1,100 @@
+---
+- hosts: masters
+  gather_facts: no
+  become: true
+ 
+  tasks:
+    - name: Initiate the cluster
+      shell: kubeadm init --pod-network-cidr 172.22.0.0/16
+
+    - name: Create .kube directory
+      ansible.builtin.file:
+        path: /home/ubuntu/.kube
+        state: directory
+        mode: 0755
+    
+    - name: Copy admin.conf to .kube
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/ubuntu/.kube/config
+        remote_src: yes
+        owner: ubuntu
+        group: ubuntu
+
+    - name: Recieve Kubeadm join token
+      shell: kubeadm token create --print-join-command
+      register:  kubeadm_join_command
+
+    - name: Extract join token to another file
+      ansible.builtin.copy:
+        content: "{{ kubeadm_join_command.stdout}}"
+        dest: /tmp/kubeadm_join_command.txt
+
+# kubeadm token create --print-join-command
+# take kubeadm join token and give it to other workers
+
+    - name: Download Helm installation script
+      get_url:
+        url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        dest: /tmp/get_helm.sh
+        mode: '0700'
+
+    - name: Install Helm
+      command: /tmp/get_helm.sh
+
+# curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+# chmod 700 get_helm.sh
+# ./get_helm.sh
+
+    - name: Download Cilium CLI
+      get_url:
+        url: https://github.com/cilium/cilium-cli/releases/download/v0.15.0/cilium-linux-amd64.tar.gz
+        dest: /tmp/cilium-linux-amd64.tar.gz
+
+    - name: Extract Cilium CLI
+      unarchive:
+        src: /tmp/cilium-linux-amd64.tar.gz
+        dest: /tmp/
+        remote_src: yes
+
+    - name: Move Cilium binary to /usr/local/bin
+      command: mv /tmp/cilium /usr/local/bin/
+
+    - name: Create Cilium systemd service file
+      copy:
+        dest: /etc/systemd/system/cilium.service
+        content: |
+          [Unit]
+          Description=Cilium CLI
+          After=network.target
+
+          [Service]
+          ExecStart=/usr/local/bin/cilium
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd
+      command: systemctl daemon-reload
+
+    - name: Enable Cilium service
+      command: systemctl enable cilium
+
+    - name: Start Cilium service
+      command: systemctl start cilium
+
+
+
+# curl -fsSL https://github.com/cilium/cilium-cli/releases/download/v0.15.0/cilium-linux-amd64.tar.gz -o cilium-linux-amd64.tar.gz
+# tar -xzvf cilium-linux-amd64.tar.gz
+# sudo mv cilium /usr/local/bin/
+
+#    - name: Initiate Calico networking
+#      shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+#      args:
+#        chdir: /home/ubuntu
+#        
+#    - name: Get the join Token
+
+

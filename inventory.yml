@@ -1,0 +1,18 @@
+all:
+  children:
+    masters:
+      hosts:
+        control-node:
+          ansible_host: ***.***.***.***
+          ansible_user: user
+          ansible_ssh_private_key_file: /path/to/ssh/key
+    workers:
+      hosts:
+        worker-1:
+          ansible_host: ***.***.***.***
+          ansible_user: user
+          ansible_ssh_private_key_file: /path/to/ssh/key
+        worker-2:
+          ansible_host: ***.***.***.***
+          ansible_user: user
+          ansible_ssh_private_key_file: /path/to/ssh/key

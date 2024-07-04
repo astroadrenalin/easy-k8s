@@ -1,0 +1,24 @@
+# Ignore tfvars files
+*.tfvars
+
+# Ignore terraform state files
+terraform.tfstate
+terraform.tfstate.backup
+
+# Ignore override files
+*.override.tf
+*.override.tf.json
+
+# Ignore plan output files
+*.tfplan
+
+# Ignore log files
+*.log
+
+# Ignore .terraform directory
+.terraform/
+
+# Ignore personal IDE/editor configurations
+.idea/
+.vscode/
+

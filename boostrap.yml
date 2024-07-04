@@ -1,0 +1,201 @@
+---
+- hosts: all
+  gather_facts: no
+  become: yes
+  become_method: su
+  become_exe: "sudo su -"
+
+  tasks:
+    - name: Update packages
+      package:
+        update_cache: yes
+
+    - name: Upgrade packages
+      package:
+        upgrade: full
+
+    - name: Install DNS Resolver
+      package:
+        name: resolvconf
+        state: latest
+
+    - name: Copy Resolvconf Contents
+      copy:
+        dest: /etc/resolvconf/resolv.conf.d/head
+        content: |
+          nameserver 185.206.92.250
+
+    - name: Editing the Resolv.conf
+      copy:
+        dest: /etc/resolv.conf
+        content: |
+          nameserver 185.206.92.250
+
+    - name: Enable Resolvconf
+      systemd:
+        name: resolvconf
+        state: started
+        enabled: yes
+
+    - name: Install CRI-O Dependencies
+      package:
+        name:
+         - ca-certificates
+         - apt-transport-https
+         - curl
+         - gnupg-agent
+         - software-properties-common
+         - libbtrfs-dev 
+         - golang-github-containers-common
+         - git 
+         - libassuan-dev 
+         - libdevmapper-dev 
+         - libglib2.0-dev 
+         - libc6-dev 
+         - libgpgme-dev 
+         - libgpg-error-dev 
+         - libseccomp-dev 
+         - libsystemd-dev 
+         - libselinux1-dev 
+         - pkg-config 
+         - go-md2man 
+         - runc
+         - libudev-dev 
+         - software-properties-common 
+         - gcc 
+         - make
+        state: present
+
+    - name: Ensure Keyrings directory exists
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0655'
+
+    - name: Download the CRI-O GPG key
+      get_url:
+        url: https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/Release.key
+        dest: /etc/apt/keyrings/cri-o-apt-keyring.gpg
+        mode: '0644'
+
+    - name: Add CRI-O repository to APT sources in /etc/apt/sources.list.d/cri-o.list
+      lineinfile:
+        path: /etc/apt/sources.list.d/cri-o.list
+        line: 'deb [trusted=yes] https://pkgs.k8s.io/addons:/cri-o:/prerelease:/main/deb/ /' # Should be [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg]
+        create: yes
+      tags: Source
+    
+    - name: Download the k8s GPG key
+      get_url:
+        url: https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key
+        dest: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+        mode: '0644'
+    
+    - name: Add k8s repository to APT sources in /etc/apt/sources.list.d/kubernetes.list
+      lineinfile:
+        path: /etc/apt/sources.list.d/kubernetes.list
+        line: 'deb [trusted=yes] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' # Should be [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg]
+        create: yes
+      tags: Source
+
+    - name: Ensure kernel is ready
+      copy:
+        dest: /etc/modules-load.d/modules.conf
+        content: |
+          overlay
+          br_netfilter
+
+    - name: Download CNI plugins
+      get_url:
+        url: https://github.com/containernetworking/plugins/releases/download/v1.4.0/cni-plugins-linux-amd64-v1.4.0.tgz
+        dest: /tmp/cni-plugins-linux-amd64-v1.4.0.tgz
+        mode: '0644'
+
+    - name: Create CNI bin directory
+      file:
+        path: /opt/cni/bin
+        state: directory
+        mode: '0755'
+
+    - name: Exctract the CNI plugins
+      ansible.builtin.unarchive:
+        src: /tmp/cni-plugins-linux-amd64-v1.4.0.tgz
+        dest: /opt/cni/bin
+        remote_src: yes
+
+    - name: Load br_netfilter module
+      become: yes
+      modprobe:
+        name: br_netfilter
+        state: present
+      tags: kernel
+
+    - name: update kernel settings net-bridge
+      become: yes
+      sysctl:
+        name: net.bridge.bridge-nf-call-iptables
+        value: 1
+        sysctl_set: yes
+        state: present
+        reload: yes
+      tags: kernel
+
+    - name: update kernel settings iptables-v4
+      become: yes
+      sysctl:
+        name: net.ipv4.ip_forward
+        value: 1
+        sysctl_set: yes
+        state: present
+        reload: yes
+      tags: kernel
+
+#    - name: Set bridge-nf-call-iptables to 1
+#      community.general.modprobe:
+#        name: bridge-nf-call-iptables
+#        state: present
+#        persistent: present
+#    
+#    - name: Set ip_forward to 1
+#      community.general.modprobe:
+#        name: ip_forward
+#        state: present
+#        persistent: present
+#
+#    - name: Reload
+#      sysctl:
+#        reload: yes
+
+#    - name: Add the k8s apt repository
+#      apt_repository:
+#        repo: 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /'
+#        state: present
+
+    - name: 2nd update for final rundown
+      package:
+       update_cache: yes
+
+    - name: Swap Off
+      shell: "swapoff -a" # I'm sorry but there is no other way.
+      run_once: true
+    
+    - name: Disable swap permanently, persist reboots
+      replace:
+        path: /etc/fstab
+        regexp: '^(\s*)([^#\n]+\s+)(\w+\s+)swap(\s+.*)$'
+        replace: '#\1\2\3swap\4'
+        backup: yes
+
+    - name: Install Container Runtime & Kube-Tools
+      package:
+        name:
+        - cri-o
+        - kubelet
+        - kubectl
+        - kubeadm
+
+    - name: Enable CRI-O
+      systemd:
+        name: crio
+        state: started
+        enabled: yes
