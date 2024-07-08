@@ -1,19 +1,20 @@
 # Ignore tfvars files
-*.tfvars
+/'1-Terraform'/*.tfvars
+/1-Terraform/secrets.tfvars
 
 # Ignore terraform state files
-terraform.tfstate
-terraform.tfstate.backup
+/'1-Terraform'/terraform.tfstate
+/'1-Terraform'/terraform.tfstate.backup
 
 # Ignore override files
-*.override.tf
-*.override.tf.json
+/'1-Terraform'/*.override.tf
+/'1-Terraform'/*.override.tf.json
 
 # Ignore plan output files
-*.tfplan
+/'1-Terraform'/*.tfplan
 
 # Ignore log files
-*.log
+/'1-Terraform'/*.log
 
 # Ignore .terraform directory
 .terraform/
