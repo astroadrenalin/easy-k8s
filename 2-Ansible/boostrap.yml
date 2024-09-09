@@ -2,8 +2,7 @@
 - hosts: all
   gather_facts: no
   become: yes
-  become_method: su
-  become_exe: "sudo su -"
+  become_method: sudo
 
   tasks:
     - name: Update packages
@@ -35,7 +34,7 @@
       systemd:
         name: resolvconf
         state: started
-        enabled: yes
+        # enabled: yes
 
     - name: Install CRI-O Dependencies
       package:

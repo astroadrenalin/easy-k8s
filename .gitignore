@@ -1,25 +1,29 @@
 # Ignore tfvars files
-/'1-Terraform'/*.tfvars
-/1-Terraform/secrets.tfvars
+1-Terraform'/*.tfvars
+1-Terraform/secrets.tfvars
 
 # Ignore terraform state files
-/'1-Terraform'/terraform.tfstate
-/'1-Terraform'/terraform.tfstate.backup
+1-Terraform'/terraform.tfstate
+1-Terraform'/terraform.tfstate.backup
+1-Terraform/.terraform.lock.hcl
 
 # Ignore override files
-/'1-Terraform'/*.override.tf
-/'1-Terraform'/*.override.tf.json
+1-Terraform'/*.override.tf
+1-Terraform'/*.override.tf.json
 
 # Ignore plan output files
-/'1-Terraform'/*.tfplan
+1-Terraform'/*.tfplan
 
 # Ignore log files
-/'1-Terraform'/*.log
+1-Terraform'/*.log
 
 # Ignore .terraform directory
-.terraform/
+1-Terraform/.terraform/
 
 # Ignore personal IDE/editor configurations
 .idea/
 .vscode/
+.terraform/
 
+# Ignore the real inventory file
+2-Ansible/inventory.yml

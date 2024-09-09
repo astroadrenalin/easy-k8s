@@ -6,6 +6,11 @@ terraform {
   }
 }
 
+variable "api_key" {
+  type        = string
+  description = "The API key for accessing ArvanCloud"
+}
+
 provider "arvan" {
   api_key = var.api_key
 }
@@ -13,7 +18,7 @@ provider "arvan" {
 variable "region" {
   type        = string
   description = "The chosen region for resources"
-  default     = "ir-thr-si1"
+  default     = "ir-tbz-sh1"
 }
 
 variable "chosen_distro_name" {
@@ -31,7 +36,7 @@ variable "chosen_name" {
 variable "chosen_network_name" {
   type        = string
   description = "The chosen name of network"
-  default     = "public204" //public202
+  default     = "public216" //public202 - public204 simin
 }
 
 variable "chosen_ssh_key" {
@@ -43,7 +48,7 @@ variable "chosen_ssh_key" {
 variable "chosen_plan_id" {
   type        = string
   description = "The chosen ID of plan"
-  default     = "eco-2-2-0"
+  default     = "g3-4-2-0"
 }
 
 data "arvan_images" "terraform_image" {
