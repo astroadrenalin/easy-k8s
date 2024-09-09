@@ -2,7 +2,7 @@
 - hosts: masters
   gather_facts: no
   become: true
- 
+
   tasks:
     - name: Initiate the cluster
       shell: kubeadm init --pod-network-cidr 172.22.0.0/16
@@ -12,7 +12,7 @@
         path: /home/ubuntu/.kube
         state: directory
         mode: 0755
-    
+
     - name: Copy admin.conf to .kube
       ansible.builtin.copy:
         src: /etc/kubernetes/admin.conf
@@ -21,17 +21,24 @@
         owner: ubuntu
         group: ubuntu
 
-    - name: Recieve Kubeadm join token
+    - name: Source kube config to environment
+      shell: echo 'export KUBECONFIG=/home/ubuntu/.kube/config' >> /home/ubuntu/.bashrc
+
+    - name: Apply KUBECONFIG to current shell
+      shell: source /home/ubuntu/.bashrc && export KUBECONFIG=/home/ubuntu/.kube/config
+
+    - name: Receive Kubeadm join token
       shell: kubeadm token create --print-join-command
-      register:  kubeadm_join_command
+      register: kubeadm_join_command
+
+    - name: Print Kubeadm join command
+      debug:
+        msg: "{{ kubeadm_join_command.stdout }}"
 
     - name: Extract join token to another file
       ansible.builtin.copy:
-        content: "{{ kubeadm_join_command.stdout}}"
+        content: "{{ kubeadm_join_command.stdout }}"
         dest: /tmp/kubeadm_join_command.txt
-
-# kubeadm token create --print-join-command
-# take kubeadm join token and give it to other workers
 
     - name: Download Helm installation script
       get_url:
@@ -41,10 +48,6 @@
 
     - name: Install Helm
       command: /tmp/get_helm.sh
-
-# curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
-# chmod 700 get_helm.sh
-# ./get_helm.sh
 
     - name: Download Cilium CLI
       get_url:
@@ -83,18 +86,3 @@
 
     - name: Start Cilium service
       command: systemctl start cilium
-
-
-
-# curl -fsSL https://github.com/cilium/cilium-cli/releases/download/v0.15.0/cilium-linux-amd64.tar.gz -o cilium-linux-amd64.tar.gz
-# tar -xzvf cilium-linux-amd64.tar.gz
-# sudo mv cilium /usr/local/bin/
-
-#    - name: Initiate Calico networking
-#      shell: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
-#      args:
-#        chdir: /home/ubuntu
-#        
-#    - name: Get the join Token
-
-
